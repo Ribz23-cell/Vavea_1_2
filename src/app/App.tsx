@@ -79,9 +79,12 @@ export default function App() {
   };
 
   // Envoi du formulaire de contact via Web3Forms
+  const [formErrorDetail, setFormErrorDetail] = useState('');
+
   const handleContactSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormStatus('sending');
+    setFormErrorDetail('');
 
     const formData = new FormData(event.currentTarget);
     formData.append('access_key', '298afdeb-2bbc-4bae-9cf2-e5be6cede372');
@@ -89,18 +92,23 @@ export default function App() {
     try {
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
+        headers: { Accept: 'application/json' },
         body: formData,
       });
       const data = await response.json();
+      console.log('Réponse Web3Forms :', data);
 
       if (data.success) {
         setFormStatus('success');
         event.currentTarget.reset();
       } else {
         setFormStatus('error');
+        setFormErrorDetail(data.message || 'Erreur inconnue.');
       }
-    } catch {
+    } catch (err) {
+      console.error('Erreur réseau Web3Forms :', err);
       setFormStatus('error');
+      setFormErrorDetail('Impossible de contacter le service d\'envoi.');
     }
   };
 
@@ -1048,7 +1056,7 @@ export default function App() {
               )}
               {formStatus === 'error' && (
                 <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                  Une erreur est survenue lors de l'envoi. Merci de réessayer ou de nous contacter directement.
+                  Une erreur est survenue lors de l'envoi{formErrorDetail ? ` : ${formErrorDetail}` : ''}. Merci de réessayer ou de nous contacter directement.
                 </p>
               )}
             </motion.form>
