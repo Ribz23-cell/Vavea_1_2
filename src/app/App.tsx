@@ -17,6 +17,7 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState<string | null>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 });
+  const [formStatus, setFormStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const navRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const navListRef = useRef<HTMLUListElement>(null);
 
@@ -75,6 +76,32 @@ export default function App() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     setIsMenuOpen(false);
     activateNav(id);
+  };
+
+  // Envoi du formulaire de contact via Web3Forms
+  const handleContactSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFormStatus('sending');
+
+    const formData = new FormData(event.currentTarget);
+    formData.append('access_key', '298afdeb-2bbc-4bae-9cf2-e5be6cede372');
+
+    try {
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setFormStatus('success');
+        event.currentTarget.reset();
+      } else {
+        setFormStatus('error');
+      }
+    } catch {
+      setFormStatus('error');
+    }
   };
 
   return (
@@ -933,12 +960,16 @@ export default function App() {
             </div>
 
             <motion.form
+              onSubmit={handleContactSubmit}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
               className="md:col-span-3 space-y-5"
             >
+              {/* Champ caché : objet de l'email reçu par VAVEA */}
+              <input type="hidden" name="subject" value="Nouveau message depuis le site VAVEA" />
+
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="nom" className="block text-[#0A3D5C] font-medium mb-2 text-sm">
@@ -947,6 +978,8 @@ export default function App() {
                   <input
                     type="text"
                     id="nom"
+                    name="name"
+                    required
                     className="w-full px-4 py-3 border border-[#4A6070]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A7FA3] focus:border-transparent bg-white text-sm"
                     placeholder="Votre nom"
                   />
@@ -958,6 +991,8 @@ export default function App() {
                   <input
                     type="email"
                     id="email"
+                    name="email"
+                    required
                     className="w-full px-4 py-3 border border-[#4A6070]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A7FA3] focus:border-transparent bg-white text-sm"
                     placeholder="votre@email.com"
                   />
@@ -970,6 +1005,9 @@ export default function App() {
                 </label>
                 <select
                   id="sujet"
+                  name="sujet"
+                  required
+                  defaultValue=""
                   className="w-full px-4 py-3 border border-[#4A6070]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A7FA3] focus:border-transparent bg-white text-sm text-[#4A6070]"
                 >
                   <option value="">Sélectionnez un sujet</option>
@@ -987,6 +1025,8 @@ export default function App() {
                 </label>
                 <textarea
                   id="message"
+                  name="message"
+                  required
                   rows={5}
                   className="w-full px-4 py-3 border border-[#4A6070]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A7FA3] focus:border-transparent resize-none bg-white text-sm"
                   placeholder="Votre message..."
@@ -995,10 +1035,22 @@ export default function App() {
 
               <button
                 type="submit"
-                className="w-full bg-[#C8873A] hover:bg-[#E8A85A] text-white px-8 py-4 rounded-lg font-semibold text-base transition-all transform hover:scale-105"
+                disabled={formStatus === 'sending'}
+                className="w-full bg-[#C8873A] hover:bg-[#E8A85A] disabled:opacity-60 disabled:cursor-not-allowed text-white px-8 py-4 rounded-lg font-semibold text-base transition-all transform hover:scale-105"
               >
-                Envoyer le message
+                {formStatus === 'sending' ? 'Envoi en cours...' : 'Envoyer le message'}
               </button>
+
+              {formStatus === 'success' && (
+                <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                  Merci ! Votre message a bien été envoyé. Nous vous répondrons dès que possible.
+                </p>
+              )}
+              {formStatus === 'error' && (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                  Une erreur est survenue lors de l'envoi. Merci de réessayer ou de nous contacter directement.
+                </p>
+              )}
             </motion.form>
           </div>
         </div>
